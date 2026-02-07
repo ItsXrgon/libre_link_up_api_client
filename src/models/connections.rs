@@ -41,7 +41,7 @@ pub struct Datum {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlarmRules {
-    pub c: bool,
+    pub c: Option<bool>,
     pub h: H,
     pub f: F,
     pub l: F,
@@ -67,7 +67,7 @@ pub struct H {
     pub th: f64,
     pub thmm: f64,
     pub d: i32,
-    pub f: i32,
+    pub f: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

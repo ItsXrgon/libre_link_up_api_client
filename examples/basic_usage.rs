@@ -29,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = ClientConfig {
         username: "your_email@example.com".to_string(),
         password: "your_password".to_string(),
-        api_version: Some("4.12.0".to_string()),
+        api_version: Some("4.16.0".to_string()),
         region: Some(Region::EU),
         connection_identifier: Some(ConnectionIdentifier::ByName("John Doe".to_string())),
     };

@@ -45,7 +45,6 @@ mod integration {
 
         match result {
             Ok(data) => {
-                println!("Success! Current glucose: {}", data.current.value);
                 assert!(data.current.value > 0.0);
                 assert!(!data.history.is_empty());
             }

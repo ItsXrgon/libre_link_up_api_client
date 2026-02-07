@@ -12,6 +12,7 @@ use crate::{
 };
 use reqwest::{Client, header};
 use serde::de::DeserializeOwned;
+use sha2::{Digest, Sha256};
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 
@@ -27,7 +28,7 @@ type ConnectionFn = Arc<dyn Fn(&[Datum]) -> Option<String> + Send + Sync>;
 pub struct ClientConfig {
     pub username: String,
     pub password: String,
-    /// API version (defaults to "4.12.0")
+    /// API version (defaults to "4.16.0")
     pub api_version: Option<String>,
     /// API region (defaults to Global)
     pub region: Option<Region>,
@@ -81,20 +82,24 @@ impl LibreLinkUpClient {
         let version = config
             .api_version
             .clone()
-            .unwrap_or_else(|| "4.12.0".to_string());
+            .unwrap_or_else(|| "4.16.0".to_string());
 
         let region = config.region.unwrap_or_default();
         let base_url_str = region.base_url().to_string();
 
         let mut headers = header::HeaderMap::new();
-        headers.insert(header::USER_AGENT, "LibreLinkUp".parse().unwrap());
+        headers.insert(header::USER_AGENT, "Mozilla/5.0 (iPhone; CPU OS 17_4.1 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/17.4.1 Mobile/10A5355d Safari/8536.25".parse().unwrap());
         headers.insert(header::ACCEPT, "application/json".parse().unwrap());
         headers.insert("accept-encoding", "gzip".parse().unwrap());
         headers.insert("cache-control", "no-cache".parse().unwrap());
         headers.insert("connection", "Keep-Alive".parse().unwrap());
-        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
-        headers.insert("product", "llu.android".parse().unwrap());
+        headers.insert(
+            header::CONTENT_TYPE,
+            "application/json;charset=UTF-8".parse().unwrap(),
+        );
+        headers.insert("product", "llu.ios".parse().unwrap());
         headers.insert("version", version.parse().unwrap());
+        headers.insert("accept-language", "en-US".parse().unwrap());
 
         let client: Client = Client::builder()
             .default_headers(headers)
@@ -117,7 +122,7 @@ impl LibreLinkUpClient {
             .as_deref()
             .and_then(|s| Region::from_str(s).ok())
             .or(Some(Region::default()));
-        
+
         Self::new(ClientConfig {
             username,
             password,
@@ -228,11 +233,20 @@ impl LibreLinkUpClient {
         let url = format!("{}{}", base_url, path);
 
         let jwt_token = self.jwt_token.read().await.clone();
+        let account_id = self.account_id.read().await.clone();
 
         let mut request = self.client.get(&url);
 
         if let Some(token) = jwt_token {
             request = request.header(header::AUTHORIZATION, format!("Bearer {}", token));
+        }
+
+        // Add SHA-256 hashed account-id header if available
+        if let Some(id) = account_id {
+            let mut hasher = Sha256::new();
+            hasher.update(id.as_bytes());
+            let hashed_id = format!("{:x}", hasher.finalize());
+            request = request.header("account-id", hashed_id);
         }
 
         let response = request.send().await?;

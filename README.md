@@ -58,7 +58,7 @@ use libre_link_up_api_client::{ClientConfig, ConnectionIdentifier, LibreLinkUpCl
 let config = ClientConfig {
     username: "your_email@example.com".to_string(),
     password: "your_password".to_string(),
-    client_version: Some("4.12.0".to_string()),
+    client_version: Some("4.16.0".to_string()),
     connection_identifier: Some(ConnectionIdentifier::ByName("John Doe".to_string())),
 };
 

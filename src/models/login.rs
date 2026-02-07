@@ -95,7 +95,9 @@ pub struct Data {
     #[serde(rename = "authTicket")]
     pub auth_ticket: AuthTicket,
     #[serde(default)]
-    pub invitations: Vec<String>,
+    pub invitations: Option<Vec<String>>,
+    #[serde(default, rename = "trustedDeviceToken")]
+    pub trusted_device_token: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
