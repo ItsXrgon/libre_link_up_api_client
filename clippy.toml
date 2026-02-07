@@ -1,0 +1,5 @@
+# Clippy linting configuration
+cognitive-complexity-threshold = 30
+
+# Set minimum supported Rust version (MSRV)
+msrv = "1.70.0"
