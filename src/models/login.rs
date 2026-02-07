@@ -32,8 +32,8 @@ pub struct LoginResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LoginResponseData {
+    Complete(Box<Data>),
     Redirect(LoginRedirectData),
-    Complete(Data),
     Step(StepData),
     Locked(LockedData),
 }
@@ -55,18 +55,18 @@ pub struct LockoutInfo {
 
 /// Step data for additional authentication requirements (MFA, email verification, etc.)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct StepData {
     pub step: Step,
     pub user: StepUser,
+    #[serde(rename = "authTicket")]
     pub auth_ticket: AuthTicket,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Step {
     #[serde(rename = "type")]
     pub step_type: String,
+    #[serde(rename = "componentName")]
     pub component_name: String,
     pub props: StepProps,
 }
@@ -77,30 +77,33 @@ pub struct StepProps {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct StepUser {
     pub id: String,
+    #[serde(rename = "accountType")]
     pub account_type: String,
     pub country: String,
+    #[serde(rename = "uiLanguage")]
     pub ui_language: String,
 }
 
 /// Complete login data with full user information
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Data {
     pub user: User,
     pub messages: DataMessages,
     pub notifications: Notifications,
+    #[serde(rename = "authTicket")]
     pub auth_ticket: AuthTicket,
     #[serde(default)]
     pub invitations: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthTicket {
     pub token: String,
+    #[serde(default)]
     pub expires: i64,
+    #[serde(default)]
     pub duration: i64,
 }
 
@@ -118,34 +121,41 @@ pub struct Notifications {
 
 /// User profile information
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(default)]
 pub struct User {
     pub id: String,
+    #[serde(rename = "firstName")]
     pub first_name: String,
+    #[serde(rename = "lastName")]
     pub last_name: String,
     pub email: String,
     pub country: String,
+    #[serde(rename = "uiLanguage")]
     pub ui_language: String,
+    #[serde(rename = "communicationLanguage")]
     pub communication_language: String,
+    #[serde(rename = "accountType")]
     pub account_type: String,
     pub uom: String,
+    #[serde(rename = "dateFormat")]
     pub date_format: String,
+    #[serde(rename = "timeFormat")]
     pub time_format: String,
-    #[serde(default)]
+    #[serde(default, rename = "emailDay")]
     pub email_day: Vec<i32>,
     #[serde(default)]
     pub system: System,
     #[serde(default)]
     pub details: Details,
-    #[serde(default)]
+    #[serde(default, rename = "twoFactor")]
     pub two_factor: Option<TwoFactor>,
     #[serde(default)]
     pub created: i64,
-    #[serde(default)]
+    #[serde(default, rename = "lastLogin")]
     pub last_login: i64,
     #[serde(default)]
     pub programs: Details,
-    #[serde(default)]
+    #[serde(default, rename = "dateOfBirth")]
     pub date_of_birth: i64,
     #[serde(default)]
     pub practices: Details,
@@ -156,11 +166,15 @@ pub struct User {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(default)]
 pub struct TwoFactor {
+    #[serde(rename = "primaryMethod")]
     pub primary_method: String,
+    #[serde(rename = "primaryValue")]
     pub primary_value: String,
+    #[serde(rename = "secondaryMethod")]
     pub secondary_method: String,
+    #[serde(rename = "secondaryValue")]
     pub secondary_value: String,
 }
 
@@ -171,9 +185,11 @@ pub struct Consents {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(default)]
 pub struct Llu {
+    #[serde(rename = "policyAccept")]
     pub policy_accept: i64,
+    #[serde(rename = "touAccept")]
     pub tou_accept: i64,
 }
 
@@ -181,29 +197,29 @@ pub struct Llu {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Details {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct System {
     pub messages: SystemMessages,
 }
 
-impl Default for System {
-    fn default() -> Self {
-        Self {
-            messages: SystemMessages::default(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[serde(default)]
 pub struct SystemMessages {
+    #[serde(rename = "firstUsePhoenix")]
     pub first_use_phoenix: Option<i64>,
+    #[serde(rename = "firstUsePhoenixReportsDataMerged")]
     pub first_use_phoenix_reports_data_merged: Option<i64>,
+    #[serde(rename = "lluGettingStartedBanner")]
     pub llu_getting_started_banner: Option<i64>,
+    #[serde(rename = "lluNewFeatureModal")]
     pub llu_new_feature_modal: Option<i64>,
+    #[serde(rename = "lluOnboarding")]
     pub llu_onboarding: Option<i64>,
+    #[serde(rename = "lvWebPostRelease")]
     pub lv_web_post_release: Option<String>,
+    #[serde(rename = "appReviewBanner")]
     pub app_review_banner: Option<i64>,
+    #[serde(rename = "streamingTourMandatory")]
     pub streaming_tour_mandatory: Option<i64>,
 }

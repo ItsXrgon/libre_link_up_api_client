@@ -11,9 +11,8 @@ mod integration {
     fn has_test_credentials() -> bool {
         // Try to load .env file (ignore if it doesn't exist)
         let _ = dotenvy::dotenv();
-        
-        std::env::var("LIBRE_LINK_EMAIL").is_ok() 
-            && std::env::var("LIBRE_LINK_PASSWORD").is_ok()
+
+        std::env::var("LIBRE_LINK_EMAIL").is_ok() && std::env::var("LIBRE_LINK_PASSWORD").is_ok()
     }
 
     #[tokio::test]
@@ -41,7 +40,7 @@ mod integration {
         let email = std::env::var("LIBRE_LINK_EMAIL").unwrap();
         let password = std::env::var("LIBRE_LINK_PASSWORD").unwrap();
 
-        let client = LibreLinkUpClient::simple(email, password).unwrap();
+        let client = LibreLinkUpClient::simple(email, password, None).unwrap();
         let result = client.read().await;
 
         match result {

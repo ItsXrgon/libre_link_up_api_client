@@ -1,4 +1,4 @@
-use crate::models::{client::TrendType, connection::GlucoseItem, LibreCgmData};
+use crate::models::{LibreCgmData, client::TrendType, connection::GlucoseItem};
 use chrono::Utc;
 
 /// Trend map array matching API values to trend types
@@ -22,9 +22,7 @@ pub fn get_trend(trend_arrow: Option<i32>) -> TrendType {
 /// Convert raw GlucoseItem to LibreCgmData
 pub fn map_glucose_data(item: &GlucoseItem) -> LibreCgmData {
     let date_str = format!("{} UTC", item.factory_timestamp);
-    let date = date_str
-        .parse()
-        .unwrap_or_else(|_| Utc::now());
+    let date = date_str.parse().unwrap_or_else(|_| Utc::now());
 
     LibreCgmData {
         value: item.value,
@@ -34,3 +32,4 @@ pub fn map_glucose_data(item: &GlucoseItem) -> LibreCgmData {
         date,
     }
 }
+

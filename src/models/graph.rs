@@ -9,10 +9,11 @@ pub struct GraphData {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Data {
     pub connection: Connection,
+    #[serde(rename = "activeSensors")]
     pub active_sensors: Vec<ActiveSensor>,
+    #[serde(rename = "graphData")]
     pub graph_data: Vec<GlucoseItem>,
 }
 
@@ -42,8 +43,8 @@ pub struct FixedLowAlarmValues {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Sensor {
+    #[serde(rename = "deviceId")]
     pub device_id: String,
     pub sn: String,
     pub a: i32,
@@ -52,22 +53,31 @@ pub struct Sensor {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Connection {
     pub id: String,
+    #[serde(rename = "patientId")]
     pub patient_id: String,
     pub country: String,
     pub status: i32,
+    #[serde(rename = "firstName")]
     pub first_name: String,
+    #[serde(rename = "lastName")]
     pub last_name: String,
+    #[serde(rename = "targetLow")]
     pub target_low: f64,
+    #[serde(rename = "targetHigh")]
     pub target_high: f64,
     pub uom: i32,
     pub sensor: Sensor,
+    #[serde(rename = "alarmRules")]
     pub alarm_rules: AlarmRules,
+    #[serde(rename = "glucoseMeasurement")]
     pub glucose_measurement: GlucoseItem,
+    #[serde(rename = "glucoseItem")]
     pub glucose_item: GlucoseItem,
+    #[serde(rename = "glucoseAlarm")]
     pub glucose_alarm: Option<serde_json::Value>,
+    #[serde(rename = "patientDevice")]
     pub patient_device: Device,
     pub created: i64,
 }
@@ -114,18 +124,24 @@ pub struct Nd {
 pub struct Std {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "PascalCase")]
 pub struct GlucoseItem {
+    #[serde(rename = "FactoryTimestamp")]
     pub factory_timestamp: String,
+    #[serde(rename = "Timestamp")]
     pub timestamp: String,
     #[serde(rename = "type")]
     pub item_type: i32,
+    #[serde(rename = "ValueInMgPerDl")]
     pub value_in_mg_per_dl: f64,
     #[serde(rename = "TrendArrow")]
     pub trend_arrow: Option<i32>,
+    #[serde(rename = "TrendMessage")]
     pub trend_message: Option<serde_json::Value>,
+    #[serde(rename = "MeasurementColor")]
     pub measurement_color: i32,
+    #[serde(rename = "GlucoseUnits")]
     pub glucose_units: i32,
+    #[serde(rename = "Value")]
     pub value: f64,
     #[serde(rename = "isHigh")]
     pub is_high: bool,

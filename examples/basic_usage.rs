@@ -10,6 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = LibreLinkUpClient::simple(
         "your_email@example.com".to_string(),
         "your_password".to_string(),
+        None, // Region will auto-detect
     )?;
 
     // Read current glucose data
@@ -37,9 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Read raw data
     let raw_data = advanced_client.read_raw().await?;
-    println!("\nConnection: {} {}", 
-        raw_data.connection.first_name, 
-        raw_data.connection.last_name
+    println!(
+        "\nConnection: {} {}",
+        raw_data.connection.first_name, raw_data.connection.last_name
     );
     println!("Active sensors: {}", raw_data.active_sensors.len());
 

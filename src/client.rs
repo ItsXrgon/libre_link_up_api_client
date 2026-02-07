@@ -4,51 +4,23 @@ use crate::{
         client::LibreCgmData,
         connection::{ActiveSensor, Connection, GlucoseItem},
         connections::{ConnectionsResponse, Datum},
-        countries::CountryResponse,
         graph::GraphData,
-        login::{LoginArgs, LoginRedirectResponse, LoginResponse, LoginResponseData}, region::Region,
+        login::{LoginArgs, LoginResponse, LoginResponseData},
+        region::Region,
     },
     utils::{TREND_MAP, map_glucose_data},
 };
-use reqwest::{header, Client};
+use reqwest::{Client, header};
 use serde::de::DeserializeOwned;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
 
 /// API Region configuration
-
-
-impl Region {
-    /// Get the base URL for this region
-    pub fn base_url(&self) -> String {
-        match self {
-            Region::Global => "https://api.libreview.io".to_string(),
-            Region::AE => "https://api-ae.libreview.io".to_string(),
-            Region::AP => "https://api-ap.libreview.io".to_string(),
-            Region::AU => "https://api-au.libreview.io".to_string(),
-            Region::CA => "https://api-ca.libreview.io".to_string(),
-            Region::DE => "https://api-de.libreview.io".to_string(),
-            Region::EU => "https://api-eu.libreview.io".to_string(),
-            Region::EU2 => "https://api-eu2.libreview.io".to_string(),
-            Region::FR => "https://api-fr.libreview.io".to_string(),
-            Region::JP => "https://api-jp.libreview.io".to_string(),
-            Region::US => "https://api-us.libreview.io".to_string(),
-            Region::LA => "https://api-la.libreview.io".to_string(),
-            Region::RU => "https://api.libreview.ru".to_string(),
-            Region::CN => "https://api-cn.myfreestyle.cn".to_string(),
-            Region::Custom(url) => url.clone(),
-        }
-    }
-}
-
-impl Default for Region {
-    fn default() -> Self {
-        Region::Global
-    }
-}
 const LOGIN_ENDPOINT: &str = "/llu/auth/login";
 const CONNECTIONS_ENDPOINT: &str = "/llu/connections";
-const COUNTRIES_ENDPOINT: &str = "/llu/config/country?country=DE";
+
+/// Type alias for connection identifier function
+type ConnectionFn = Arc<dyn Fn(&[Datum]) -> Option<String> + Send + Sync>;
 
 /// Client configuration options
 #[derive(Debug, Clone)]
@@ -66,7 +38,7 @@ pub struct ClientConfig {
 #[derive(Clone)]
 pub enum ConnectionIdentifier {
     ByName(String),
-    ByFunction(Arc<dyn Fn(&[Datum]) -> Option<String> + Send + Sync>),
+    ByFunction(ConnectionFn),
 }
 
 impl std::fmt::Debug for ConnectionIdentifier {
@@ -110,9 +82,9 @@ impl LibreLinkUpClient {
             .api_version
             .clone()
             .unwrap_or_else(|| "4.12.0".to_string());
-        
-        let region = config.region.clone().unwrap_or_default();
-        let base_url_str = region.base_url();
+
+        let region = config.region.unwrap_or_default();
+        let base_url_str = region.base_url().to_string();
 
         let mut headers = header::HeaderMap::new();
         headers.insert(header::USER_AGENT, "LibreLinkUp".parse().unwrap());
@@ -120,14 +92,11 @@ impl LibreLinkUpClient {
         headers.insert("accept-encoding", "gzip".parse().unwrap());
         headers.insert("cache-control", "no-cache".parse().unwrap());
         headers.insert("connection", "Keep-Alive".parse().unwrap());
-        headers.insert(
-            header::CONTENT_TYPE,
-            "application/json".parse().unwrap(),
-        );
+        headers.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
         headers.insert("product", "llu.android".parse().unwrap());
         headers.insert("version", version.parse().unwrap());
 
-        let client = Client::builder()
+        let client: Client = Client::builder()
             .default_headers(headers)
             .gzip(true)
             .build()?;
@@ -143,12 +112,17 @@ impl LibreLinkUpClient {
     }
 
     /// Create a simple client with just username and password
-    pub fn simple(username: String, password: String) -> Result<Self> {
+    pub fn simple(username: String, password: String, region: Option<String>) -> Result<Self> {
+        let region_enum = region
+            .as_deref()
+            .and_then(|s| Region::from_str(s).ok())
+            .or(Some(Region::default()));
+        
         Self::new(ClientConfig {
             username,
             password,
             api_version: None,
-            region: None,
+            region: region_enum,
             connection_identifier: None,
         })
     }
@@ -163,26 +137,25 @@ impl LibreLinkUpClient {
             password: self.config.password.clone(),
         };
 
-        let response = self
-            .client
-            .post(&url)
-            .json(&login_args)
-            .send()
-            .await?;
+        let response = self.client.post(&url).json(&login_args).send().await?;
 
         // Check if response is successful
         if !response.status().is_success() {
             let status = response.status();
-            let text = response.text().await.unwrap_or_else(|_| "Unable to read response".to_string());
-            return Err(LibreLinkUpError::InvalidResponse(format!("Login failed - HTTP {}: {}", status, text)));
+            let text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unable to read response".to_string());
+            return Err(LibreLinkUpError::InvalidResponse(format!(
+                "Login failed - HTTP {}: {}",
+                status, text
+            )));
         }
 
         // Try to parse JSON with better error handling
         let text = response.text().await?;
-        
+
         let login_response: LoginResponse = serde_json::from_str(&text).map_err(|e| {
-            eprintln!("Failed to parse login response: {}", e);
-            eprintln!("Response body: {}", &text[..text.len().min(1000)]);
             LibreLinkUpError::InvalidResponse(format!("Failed to parse JSON: {}", e))
         })?;
 
@@ -199,9 +172,7 @@ impl LibreLinkUpClient {
         // Check for additional action required (MFA, etc.)
         if login_response.status == 4 {
             let component_name = match &login_response.data {
-                LoginResponseData::Step(step_data) => {
-                    step_data.step.component_name.clone()
-                }
+                LoginResponseData::Step(step_data) => step_data.step.component_name.clone(),
                 _ => "unknown".to_string(),
             };
             return Err(LibreLinkUpError::AdditionalActionRequired(component_name));
@@ -225,39 +196,17 @@ impl LibreLinkUpClient {
 
     /// Handle regional redirect during login
     async fn handle_redirect(&self, region: String) -> Result<LoginResponse> {
-        // Map region code to base URL
-        let region_url = match region.to_lowercase().as_str() {
-            "us" => "https://api-us.libreview.io",
-            "eu" => "https://api-eu.libreview.io",
-            "fr" => "https://api-fr.libreview.io",
-            "de" => "https://api-de.libreview.io",
-            "jp" => "https://api-jp.libreview.io",
-            "ap" => "https://api-ap.libreview.io",
-            "au" => "https://api-au.libreview.io",
-            "ae" => "https://api-ae.libreview.io",
-            "ca" => "https://api-ca.libreview.io",
-            "la" => "https://api-la.libreview.io",
-            "ru" => "https://api.libreview.ru",
-            "cn" => "https://api-cn.myfreestyle.cn",
-            _ => {
-                return Err(LibreLinkUpError::RegionNotFound(
-                    region.clone(),
-                    "us, eu, fr, de, jp, ap, au, ae, ca, la, ru, cn".to_string(),
-                ));
-            }
-        };
-
-        *self.base_url.write().await = region_url.to_string();
+        // Parse region string (FromStr never fails, defaults to Global)
+        let region_enum = Region::from_str(&region).unwrap();
+        let region_url = region_enum.base_url().to_string();
+        *self.base_url.write().await = region_url;
 
         // Retry login with new region (using Box::pin for recursion)
         Box::pin(self.login()).await
     }
 
     /// Make an authenticated request with automatic re-authentication
-    async fn authenticated_request<T: DeserializeOwned>(
-        &self,
-        path: &str,
-    ) -> Result<T> {
+    async fn authenticated_request<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
         // Ensure we're logged in
         if self.jwt_token.read().await.is_none() {
             self.login().await?;
@@ -283,26 +232,28 @@ impl LibreLinkUpClient {
         let mut request = self.client.get(&url);
 
         if let Some(token) = jwt_token {
-            request = request
-                .header(header::AUTHORIZATION, format!("Bearer {}", token));
+            request = request.header(header::AUTHORIZATION, format!("Bearer {}", token));
         }
 
         let response = request.send().await?;
-        
+
         // Check if response is successful
         if !response.status().is_success() {
             let status = response.status();
-            let text = response.text().await.unwrap_or_else(|_| "Unable to read response".to_string());
-            return Err(LibreLinkUpError::InvalidResponse(format!("HTTP {}: {}", status, text)));
+            let text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unable to read response".to_string());
+            return Err(LibreLinkUpError::InvalidResponse(format!(
+                "HTTP {}: {}",
+                status, text
+            )));
         }
-        
+
         // Try to parse JSON, with better error message on failure
         let text = response.text().await?;
-        serde_json::from_str(&text).map_err(|e| {
-            eprintln!("Failed to parse JSON response from {}: {}", url, e);
-            eprintln!("Response body: {}", &text[..text.len().min(500)]);
-            LibreLinkUpError::InvalidResponse(format!("Failed to parse JSON: {}", e))
-        })
+        serde_json::from_str(&text)
+            .map_err(|e| LibreLinkUpError::InvalidResponse(format!("Failed to parse JSON: {}", e)))
     }
 
     /// Get list of connections
@@ -317,8 +268,7 @@ impl LibreLinkUpClient {
                 let connection = connections
                     .iter()
                     .find(|c| {
-                        format!("{} {}", c.first_name, c.last_name)
-                            .to_lowercase()
+                        format!("{} {}", c.first_name, c.last_name).to_lowercase()
                             == name.to_lowercase()
                     })
                     .ok_or_else(|| LibreLinkUpError::ConnectionNotFound(name.clone()))?;
@@ -359,15 +309,12 @@ impl LibreLinkUpClient {
 
         // Note: GraphData uses its own type definitions which are identical to connection types
         // We need to convert through JSON to avoid type mismatch
-        let connection: Connection = serde_json::from_value(
-            serde_json::to_value(&graph_data.data.connection)?
-        )?;
-        let active_sensors: Vec<ActiveSensor> = serde_json::from_value(
-            serde_json::to_value(&graph_data.data.active_sensors)?
-        )?;
-        let graph_data_items: Vec<GlucoseItem> = serde_json::from_value(
-            serde_json::to_value(&graph_data.data.graph_data)?
-        )?;
+        let connection: Connection =
+            serde_json::from_value(serde_json::to_value(&graph_data.data.connection)?)?;
+        let active_sensors: Vec<ActiveSensor> =
+            serde_json::from_value(serde_json::to_value(&graph_data.data.active_sensors)?)?;
+        let graph_data_items: Vec<GlucoseItem> =
+            serde_json::from_value(serde_json::to_value(&graph_data.data.graph_data)?)?;
 
         Ok(ReadRawResponse {
             connection,
@@ -387,7 +334,7 @@ impl LibreLinkUpClient {
     }
 
     /// Read averaged glucose data over time
-    /// 
+    ///
     /// This method polls the API at regular intervals and calculates averages
     /// when the specified amount of readings have been collected.
     pub async fn read_averaged<F>(
@@ -403,9 +350,8 @@ impl LibreLinkUpClient {
 
         let handle = tokio::spawn(async move {
             let mut memory: Vec<LibreCgmData> = Vec::new();
-            let mut interval = tokio::time::interval(
-                tokio::time::Duration::from_millis(interval_ms),
-            );
+            let mut interval =
+                tokio::time::interval(tokio::time::Duration::from_millis(interval_ms));
 
             loop {
                 interval.tick().await;
@@ -421,14 +367,12 @@ impl LibreLinkUpClient {
 
                     if memory.len() >= amount {
                         // Calculate average
-                        let avg_value = memory.iter().map(|m| m.value).sum::<f64>()
-                            / memory.len() as f64;
+                        let avg_value =
+                            memory.iter().map(|m| m.value).sum::<f64>() / memory.len() as f64;
 
                         let trend_indices: Vec<usize> = memory
                             .iter()
-                            .filter_map(|m| {
-                                TREND_MAP.iter().position(|&t| t == m.trend)
-                            })
+                            .filter_map(|m| TREND_MAP.iter().position(|&t| t == m.trend))
                             .collect();
 
                         let avg_trend_idx = if !trend_indices.is_empty() {

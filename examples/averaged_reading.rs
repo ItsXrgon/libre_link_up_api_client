@@ -7,6 +7,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = LibreLinkUpClient::simple(
         "your_email@example.com".to_string(),
         "your_password".to_string(),
+        None, // Region will auto-detect
     )?;
 
     println!("Starting averaged reading (collecting 5 readings every 15 seconds)...");
@@ -21,7 +22,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("Average trend: {:?}", average.trend);
                 println!("Based on {} readings:", memory.len());
                 for (i, reading) in memory.iter().enumerate() {
-                    println!("  {}. {:.1} mg/dL at {}", i + 1, reading.value, reading.date);
+                    println!(
+                        "  {}. {:.1} mg/dL at {}",
+                        i + 1,
+                        reading.value,
+                        reading.date
+                    );
                 }
             },
             15000, // 15 second intervals

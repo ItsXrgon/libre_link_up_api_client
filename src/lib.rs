@@ -7,5 +7,4 @@ pub use client::{
     ClientConfig, ConnectionIdentifier, LibreLinkUpClient, ReadRawResponse, ReadResponse,
 };
 pub use errors::{LibreLinkUpError, Result};
-pub use models::{LibreCgmData, TrendType, Region};
-
+pub use models::{LibreCgmData, Region, TrendType};
