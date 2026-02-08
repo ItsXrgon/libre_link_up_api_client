@@ -2,12 +2,12 @@
 
 Unofficial Rust client for the LibreLinkUp API - fetches CGM (Continuous Glucose Monitor) data from FreeStyle Libre 2/3 devices via Abbott's sharing service.
 
-This is a Rust implementation inspired by the [TypeScript libre-link-up-api-client](https://github.com/DiaKEM/libre-link-up-api-client).
+This is a Rust implementation inspired by [TypeScript libre-link-up-api-client](https://github.com/DiaKEM/libre-link-up-api-client) and [LibreLinkUp Status Bar Extension](https://github.com/borkod/librelinkup-vs-code-extension).
 
 ## Features
 
 - ✅ Automatic authentication and token management
-- ✅ Regional endpoint handling (US, EU, EU2,JP, DE, FR, AP, AU, AE)
+- ✅ Regional endpoint handling (US, EU, EU2, JP, DE, FR, AP, AU, AE)
 - ✅ Read current and historical glucose data
 - ✅ Raw API response access
 - ✅ Averaged glucose readings over time
@@ -103,9 +103,6 @@ Create a basic client with default settings.
 
 ### `LibreLinkUpClient::new(config)`
 Create a client with custom configuration.
-
-### `client.login()`
-Manually trigger login (usually automatic).
 
 ### `client.read()`
 Returns current glucose reading + historical data.
@@ -218,6 +215,7 @@ cargo run --example averaged_reading
 The client automatically handles regional redirects. Supported regions:
 - 🇺🇸 US (api-us.libreview.io)
 - 🇪🇺 EU (api-eu.libreview.io)
+- 🇪🇺 EU2 (api-eu2.libreview.io)
 - 🇫🇷 FR (api-fr.libreview.io)
 - 🇯🇵 JP (api-jp.libreview.io)
 - 🇩🇪 DE (api-de.libreview.io)
@@ -232,7 +230,3 @@ MIT License
 ## Disclaimer
 
 This is an unofficial client. Use at your own risk. The API is not officially documented and may change without notice.
-
-## Credits
-
-Inspired by the TypeScript implementation: [DiaKEM/libre-link-up-api-client](https://github.com/DiaKEM/libre-link-up-api-client)
