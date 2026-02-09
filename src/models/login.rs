@@ -1,3 +1,4 @@
+use crate::models::common::AuthTicket;
 use serde::{Deserialize, Serialize};
 
 /// Login credentials
@@ -98,15 +99,6 @@ pub struct Data {
     pub invitations: Option<Vec<String>>,
     #[serde(default, rename = "trustedDeviceToken")]
     pub trusted_device_token: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct AuthTicket {
-    pub token: String,
-    #[serde(default)]
-    pub expires: i64,
-    #[serde(default)]
-    pub duration: i64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]

@@ -1,17 +1,17 @@
 use crate::{
     errors::{LibreLinkUpError, Result},
     models::{
-        client::LibreCgmData,
-        connection::{ActiveSensor, Connection, GlucoseItem},
-        connections::{ConnectionsResponse, Datum},
-        graph::GraphData,
+        client::{LibreCgmData, ReadRawResponse, ReadResponse},
+        common::Connection,
+        connections::ConnectionsResponse,
+        graph::GraphResponse,
         login::{LoginArgs, LoginResponse, LoginResponseData},
         region::Region,
     },
     utils::{TREND_MAP, map_glucose_data},
 };
 use reqwest::{Client, header};
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
@@ -21,7 +21,7 @@ const LOGIN_ENDPOINT: &str = "/llu/auth/login";
 const CONNECTIONS_ENDPOINT: &str = "/llu/connections";
 
 /// Type alias for connection identifier function
-type ConnectionFn = Arc<dyn Fn(&[Datum]) -> Option<String> + Send + Sync>;
+type ConnectionFn = Arc<dyn Fn(&[Connection]) -> Option<String> + Send + Sync>;
 
 /// Client configuration options
 ///
@@ -86,60 +86,6 @@ impl std::fmt::Debug for ConnectionIdentifier {
             Self::ByFunction(_) => write!(f, "ByFunction(<closure>)"),
         }
     }
-}
-
-/// Response from the read() method containing current and historical glucose data
-///
-/// # Examples
-///
-/// ```no_run
-/// use libre_link_up_api_client::LibreLinkUpClient;
-///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let client = LibreLinkUpClient::simple(
-///     "email@example.com".to_string(),
-///     "password".to_string(),
-///     None,
-/// )?;
-///
-/// let response = client.read().await?;
-/// println!("Current: {:.1} mg/dL", response.current.value);
-/// println!("History: {} readings", response.history.len());
-/// # Ok(())
-/// # }
-/// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ReadResponse {
-    pub current: LibreCgmData,
-    pub history: Vec<LibreCgmData>,
-}
-
-/// Response from the read_raw() method with unparsed API data
-///
-/// Access to raw API responses for advanced use cases
-///
-/// # Examples
-///
-/// ```no_run
-/// use libre_link_up_api_client::LibreLinkUpClient;
-///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// let client = LibreLinkUpClient::simple(
-///     "email@example.com".to_string(),
-///     "password".to_string(),
-///     None,
-/// )?;
-///
-/// let raw = client.read_raw().await?;
-/// println!("Connection ID: {}", raw.connection.patient_id);
-/// # Ok(())
-/// # }
-/// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct ReadRawResponse {
-    pub connection: Connection,
-    pub active_sensors: Vec<ActiveSensor>,
-    pub graph_data: Vec<GlucoseItem>,
 }
 
 /// Main LibreLinkUp API client
@@ -210,6 +156,18 @@ impl LibreLinkUpClient {
     /// # }
     /// ```
     pub fn new(config: ClientConfig) -> Result<Self> {
+        // Basic validation to avoid confusing HTTP-level errors later
+        if config.username.trim().is_empty() {
+            return Err(LibreLinkUpError::AuthFailed(
+                "username must not be empty".to_string(),
+            ));
+        }
+        if config.password.is_empty() {
+            return Err(LibreLinkUpError::AuthFailed(
+                "password must not be empty".to_string(),
+            ));
+        }
+
         let version = config
             .api_version
             .clone()
@@ -276,6 +234,17 @@ impl LibreLinkUpClient {
     /// # }
     /// ```
     pub fn simple(username: String, password: String, region: Option<String>) -> Result<Self> {
+        if username.trim().is_empty() {
+            return Err(LibreLinkUpError::AuthFailed(
+                "username must not be empty".to_string(),
+            ));
+        }
+        if password.is_empty() {
+            return Err(LibreLinkUpError::AuthFailed(
+                "password must not be empty".to_string(),
+            ));
+        }
+
         let region_enum = region
             .as_deref()
             .and_then(|s| Region::from_str(s).ok())
@@ -417,15 +386,16 @@ impl LibreLinkUpClient {
                 .await
                 .unwrap_or_else(|_| "Unable to read response".to_string());
             return Err(LibreLinkUpError::InvalidResponse(format!(
-                "HTTP {}: {}",
-                status, text
+                "request to '{}' failed - HTTP {}: {}",
+                path, status, text
             )));
         }
 
         // Try to parse JSON, with better error message on failure
         let text = response.text().await?;
-        serde_json::from_str(&text)
-            .map_err(|e| LibreLinkUpError::InvalidResponse(format!("Failed to parse JSON: {}", e)))
+        serde_json::from_str(&text).map_err(|e| {
+            LibreLinkUpError::InvalidResponse(format!("failed to parse JSON for '{}': {}", path, e))
+        })
     }
 
     /// Get list of connections
@@ -434,7 +404,7 @@ impl LibreLinkUpClient {
     }
 
     /// Get connection ID by identifier
-    fn get_connection_id(&self, connections: &[Datum]) -> Result<String> {
+    fn get_connection_id(&self, connections: &[Connection]) -> Result<String> {
         match &self.config.connection_identifier {
             Some(ConnectionIdentifier::ByName(name)) => {
                 let connection = connections
@@ -507,21 +477,12 @@ impl LibreLinkUpClient {
         };
 
         let path = format!("{}/{}/graph", CONNECTIONS_ENDPOINT, connection_id);
-        let graph_data: GraphData = self.authenticated_request(&path).await?;
-
-        // Note: GraphData uses its own type definitions which are identical to connection types
-        // We need to convert through JSON to avoid type mismatch
-        let connection: Connection =
-            serde_json::from_value(serde_json::to_value(&graph_data.data.connection)?)?;
-        let active_sensors: Vec<ActiveSensor> =
-            serde_json::from_value(serde_json::to_value(&graph_data.data.active_sensors)?)?;
-        let graph_data_items: Vec<GlucoseItem> =
-            serde_json::from_value(serde_json::to_value(&graph_data.data.graph_data)?)?;
+        let graph_response: GraphResponse = self.authenticated_request(&path).await?;
 
         Ok(ReadRawResponse {
-            connection,
-            active_sensors,
-            graph_data: graph_data_items,
+            connection: graph_response.data.connection,
+            active_sensors: graph_response.data.active_sensors,
+            graph_data: graph_response.data.graph_data,
         })
     }
 
@@ -670,10 +631,9 @@ impl LibreLinkUpClient {
                             date: current.date,
                         };
 
-                        let mem_clone = memory.clone();
-                        memory.clear();
-
-                        callback(averaged, mem_clone, history);
+                        // Move the collected readings into the callback without cloning
+                        let collected = std::mem::take(&mut memory);
+                        callback(averaged, collected, history);
                     }
                 }
             }
