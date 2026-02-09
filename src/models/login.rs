@@ -4,28 +4,36 @@ use serde::{Deserialize, Serialize};
 /// Login credentials
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginArgs {
+    /// Email for LibreLinkUp account
     #[serde(rename = "email")]
     pub username: String,
+    /// Password for LibreLinkUp account
     pub password: String,
 }
 
 /// Login redirect response when regional redirect is needed
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginRedirectResponse {
+    /// HTTP status code
     pub status: i32,
+    /// Login redirect data
     pub data: LoginRedirectData,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginRedirectData {
+    /// Whether to redirect to a different region
     pub redirect: bool,
+    /// Region to redirect to
     pub region: String,
 }
 
 /// Main login response
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginResponse {
+    /// HTTP status code
     pub status: i32,
+    /// Login response data
     pub data: LoginResponseData,
 }
 
@@ -33,24 +41,34 @@ pub struct LoginResponse {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum LoginResponseData {
+    /// Complete user data
     Complete(Box<Data>),
+    /// Redirect to a different region
     Redirect(LoginRedirectData),
+    /// Step data for additional authentication requirements (MFA, email verification, etc.)
     Step(StepData),
+    /// Locked account data for rate limiting
     Locked(LockedData),
 }
 
 /// Locked account data for rate limiting
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LockedData {
+    /// HTTP status code
     pub code: i32,
+    /// Lockout information
     pub data: LockoutInfo,
+    /// Error message
     pub message: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LockoutInfo {
+    /// Number of failed login attempts
     pub failures: i32,
+    /// Time interval in seconds before next login attempt
     pub interval: i32,
+    /// Lockout duration in seconds
     pub lockout: i32,
 }
 
@@ -104,12 +122,14 @@ pub struct Data {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct DataMessages {
+    /// Unread messages
     pub unread: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Notifications {
+    /// Unresolved notifications
     pub unresolved: i32,
 }
 
@@ -130,6 +150,7 @@ pub struct User {
     pub communication_language: String,
     #[serde(rename = "accountType")]
     pub account_type: String,
+    /// Unit of measure
     pub uom: String,
     #[serde(rename = "dateFormat")]
     pub date_format: String,
@@ -174,6 +195,7 @@ pub struct TwoFactor {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Consents {
+    /// LibreLinkUp policy acceptance timestamp
     #[serde(default)]
     pub llu: Llu,
 }
@@ -181,8 +203,10 @@ pub struct Consents {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct Llu {
+    /// LibreLinkUp policy acceptance timestamp
     #[serde(rename = "policyAccept")]
     pub policy_accept: i64,
+    /// Terms of use acceptance timestamp
     #[serde(rename = "touAccept")]
     pub tou_accept: i64,
 }
