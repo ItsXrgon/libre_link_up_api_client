@@ -1,7 +1,9 @@
+//! Notification settings types for GET /llu/notifications/settings/{connectionId}.
+
 use crate::models::common::{AuthTicket, F, FixedLowAlarmValues, H, Std};
 use serde::{Deserialize, Serialize};
 
-/// Low glucose alarm configuration for notifications settings (includes "on" field).
+/// Low glucose alarm configuration for notifications settings (includes `on` field).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NotificationSettingsL {
     /// Whether this alarm rule is enabled

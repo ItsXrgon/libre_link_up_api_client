@@ -1,3 +1,7 @@
+//! Utilities for mapping API glucose data to [`LibreCgmData`].
+//!
+//! Main entry: [`map_glucose_data`].
+
 use crate::models::{
     LibreCgmData,
     client::TrendType,
@@ -5,7 +9,7 @@ use crate::models::{
 };
 use chrono::Utc;
 
-/// Trend map array matching API values to trend types
+/// Maps API trend arrow index (0–6) to [`TrendType`]. Used when converting raw readings.
 pub const TREND_MAP: [TrendType; 7] = [
     TrendType::NotComputable,
     TrendType::SingleDown,
@@ -16,14 +20,14 @@ pub const TREND_MAP: [TrendType; 7] = [
     TrendType::NotComputable,
 ];
 
-/// Get trend from arrow value
+/// Converts an API trend arrow index to [`TrendType`]. Returns [`TrendType::Flat`] if missing or out of range.
 pub fn get_trend(trend_arrow: Option<i32>) -> TrendType {
     trend_arrow
         .and_then(|arrow| TREND_MAP.get(arrow as usize).copied())
         .unwrap_or(TrendType::Flat)
 }
 
-/// Trait for types that can be converted to LibreCgmData
+/// Implemented by API types that can be converted to [`LibreCgmData`] via [`map_glucose_data`].
 pub trait GlucoseData {
     fn factory_timestamp(&self) -> &str;
     fn value(&self) -> f64;
@@ -68,7 +72,7 @@ impl GlucoseData for GlucoseMeasurement {
     }
 }
 
-/// Convert glucose data to LibreCgmData
+/// Converts a [`GlucoseData`] item (e.g. [`GlucoseItem`], [`GlucoseMeasurement`]) into [`LibreCgmData`]. Uses [`get_trend`] for the trend; parses timestamp or falls back to now.
 pub fn map_glucose_data<T: GlucoseData>(item: &T) -> LibreCgmData {
     let date = format!("{} UTC", item.factory_timestamp())
         .parse()

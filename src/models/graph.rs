@@ -1,7 +1,9 @@
+//! Graph/connection data types for the connections graph endpoint.
+
 use crate::models::common::{ActiveSensor, AuthTicket, Connection, GlucoseItem};
 use serde::{Deserialize, Serialize};
 
-/// Graph data containing connection, sensors, and historical glucose readings
+/// Graph data containing connection, sensors, and historical glucose readings.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct GraphData {
     /// Connection information

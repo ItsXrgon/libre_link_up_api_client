@@ -1,15 +1,23 @@
+//! Processed glucose and read-response types ([`read`](crate::LibreLinkUpClient::read), [`read_raw`](crate::LibreLinkUpClient::read_raw)).
+
 use crate::models::common::{ActiveSensor, Connection, GlucoseItem};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Trend direction for glucose readings
+/// Trend direction for glucose readings (matches API trend arrow).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TrendType {
+    /// Falling fast (↓↓)
     SingleDown,
+    /// Falling (↘)
     FortyFiveDown,
+    /// Stable (→)
     Flat,
+    /// Rising (↗)
     FortyFiveUp,
+    /// Rising fast (↑↑)
     SingleUp,
+    /// Unknown or not computable (?)
     NotComputable,
 }
 

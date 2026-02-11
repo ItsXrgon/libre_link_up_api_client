@@ -65,4 +65,5 @@ pub enum LibreLinkUpError {
     InvalidResponse(String),
 }
 
+/// Result type for LibreLinkUp API operations.
 pub type Result<T> = std::result::Result<T, LibreLinkUpError>;

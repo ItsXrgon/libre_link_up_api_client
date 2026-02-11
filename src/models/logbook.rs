@@ -1,7 +1,9 @@
+//! Logbook types for GET /llu/connections/{patientId}/logbook.
+
 use crate::models::common::AuthTicket;
 use serde::{Deserialize, Serialize};
 
-/// Single logbook entry (glucose event / alarm).
+/// Single logbook entry (glucose event or alarm).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LogbookEntry {
     #[serde(rename = "FactoryTimestamp")]

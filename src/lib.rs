@@ -1,16 +1,22 @@
 //! # LibreLinkUp API Client
 //!
-//! Unofficial Rust client for the LibreLinkUp API - fetch CGM (Continuous Glucose Monitor)
+//! Unofficial Rust client for the LibreLinkUp API — fetch CGM (Continuous Glucose Monitor)
 //! data from FreeStyle Libre 2/3 devices through Abbott's sharing service.
 //!
-//! ## Features
+//! ## Main API
 //!
-//! - Automatic authentication and token management
-//! - Regional endpoint support (US, EU, JP, DE, FR, AP, AU, AE)
-//! - Current and historical glucose readings
-//! - Raw API access for advanced use cases
-//! - Type-safe API with comprehensive error handling
-//! - Async/await support with Tokio
+//! - **[`LibreLinkUpClient`]** — main client; use [`simple`](client::LibreLinkUpClient::simple) or [`new`](client::LibreLinkUpClient::new) to construct.
+//! - **[`LibreLinkUpClient::get_country_config`](client::LibreLinkUpClient::get_country_config)** — unauthenticated country/region config.
+//! - **[`ClientConfig`]** — client configuration (username, password, region, etc.).
+//! - **[`ConnectionIdentifier`]** — how to pick a patient when following multiple (e.g. by name).
+//! - **[`LibreLinkUpError`]** — error type for all operations.
+//! - **[`Result<T>`](errors::Result)** — alias for `Result<T, LibreLinkUpError>`.
+//!
+//! ## Response and model types
+//!
+//! Re-exported at crate root: [`ReadResponse`], [`ReadRawResponse`], [`UserResponse`], [`AccountResponse`],
+//! [`LogbookResponse`], [`NotificationSettingsResponse`], [`CountryConfigResponse`], [`LibreCgmData`],
+//! [`TrendType`], [`GlucoseItem`], [`Connection`], [`Region`]. See the [models] module for the full set.
 //!
 //! ## Quick Start
 //!

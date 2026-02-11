@@ -1,7 +1,9 @@
+//! List of connections (GET /llu/connections) response.
+
 use crate::models::common::{AuthTicket, Connection};
 use serde::{Deserialize, Serialize};
 
-/// Response containing a list of connections and authentication ticket
+/// Response containing a list of connections and authentication ticket.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ConnectionsResponse {
     /// HTTP status code

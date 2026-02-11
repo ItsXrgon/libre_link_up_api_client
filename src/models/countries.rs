@@ -1,7 +1,9 @@
+//! Country/region config types for GET /llu/config/country.
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Regional endpoint configuration (LSL API + Socket Hub)
+/// Regional endpoint configuration (LSL API + Socket Hub).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AE {
@@ -78,10 +80,7 @@ pub struct CountryConfigData {
     pub safety_banner_interval: Option<u32>,
 }
 
-/// Response from GET /llu/config/country (unauthenticated).
-///
-/// Use [`get_country_config`](crate::get_country_config) or
-/// [`LibreLinkUpClient::get_country_config`](crate::LibreLinkUpClient::get_country_config) to fetch.
+/// Response from GET /llu/config/country (unauthenticated). Use [`LibreLinkUpClient::get_country_config`](crate::LibreLinkUpClient::get_country_config) to fetch.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CountryConfigResponse {
     pub status: i32,

@@ -1,6 +1,9 @@
+//! API region and base URL mapping.
+
 use std::fmt;
 use std::str::FromStr;
 
+/// API region; determines base URL and is used for country config and login redirects.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Region {
     /// Global endpoint (auto-redirects to appropriate region)

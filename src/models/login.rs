@@ -1,7 +1,9 @@
+//! Login, user, and account response types.
+
 use crate::models::common::AuthTicket;
 use serde::{Deserialize, Serialize};
 
-/// Login credentials
+/// Login request body (email + password).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct LoginArgs {
     /// Email for LibreLinkUp account

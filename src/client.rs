@@ -1,3 +1,7 @@
+//! HTTP client and configuration for the LibreLinkUp API.
+//!
+//! Entry points: [`LibreLinkUpClient`] (authenticated and unauthenticated requests).
+
 use crate::{
     errors::{LibreLinkUpError, Result},
     models::{
@@ -200,7 +204,7 @@ impl LibreLinkUpClient {
             header::CONTENT_TYPE,
             "application/json;charset=UTF-8".parse().unwrap(),
         );
-        headers.insert("product", "llu.android".parse().unwrap());
+        headers.insert("product", "llu.ios".parse().unwrap());
         headers.insert("version", version.parse().unwrap());
         headers.insert("accept-language", "en-US".parse().unwrap());
 

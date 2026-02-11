@@ -1,4 +1,7 @@
-//! Data models for LibreLinkUp API
+//! Data models for LibreLinkUp API responses and requests.
+//!
+//! Types are grouped by endpoint or domain: [client], [common], [connection], [connections], [countries],
+//! [graph], [logbook], [login], [notifications], [region].
 
 pub mod client;
 pub mod common;
